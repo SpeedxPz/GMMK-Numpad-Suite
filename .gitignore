@@ -1,0 +1,18 @@
+# build output
+dist/
+_build/
+__pycache__/
+*.pyc
+
+# Glorious firmware and reverse-engineering material: never published (CI downloads the stock image)
+GMMK_Numpad_88.hex
+*.hex
+*.bin
+*.elf
+_re/
+
+# local logs / scratch
+*.log
+
+# project notes (reverse-engineering log): kept private for now
+.knowledge/

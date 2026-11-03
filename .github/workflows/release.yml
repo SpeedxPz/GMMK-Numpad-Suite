@@ -1,0 +1,97 @@
+# Builds "GMMK Numpad Suite.exe" on Windows and publishes it.
+#   - push a tag like v1.2.0  -> GitHub release with the exe attached
+#   - Actions tab -> "Run workflow" -> test build, exe kept as a workflow artifact
+#
+# The stock Glorious firmware is not in the repo. It is downloaded from a private MinIO (S3) bucket,
+# checked against its known SHA-256, and the firmware add-on is built from it here (fw/build.py).
+# Repository secrets: MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, FIRMWARE_S3_PATH
+# (e.g. s3://gmmk-asset/stock/GMMK_Numpad_88.hex). Without them the exe is built without firmware
+# images: everything works, but its Settings tab can't update the numpad's firmware.
+name: Build and release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  STOCK_HEX_SHA256: 63daf1c2099322e9994ebefe996bb3edf05c28f1dfbf5f9601465d14945bc129
+  ARM_GCC_VERSION: 15.2.1-1.1
+  ARM_GCC_SHA256: bae6a3d1667697ce750c3b13d6d26d80973ecedc2cc87bf04869e83447fd93ea
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download stock firmware
+        id: firmware
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.MINIO_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          AWS_DEFAULT_REGION: us-east-1   # MinIO ignores it; the AWS CLI wants one
+          FIRMWARE_S3_PATH: ${{ secrets.FIRMWARE_S3_PATH }}
+        run: |
+          if (-not ($env:MINIO_ENDPOINT -and $env:AWS_ACCESS_KEY_ID -and $env:FIRMWARE_S3_PATH)) {
+            Write-Output "::warning::Firmware secrets not set: building without firmware images"
+            "present=false" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          aws configure set default.s3.addressing_style path   # MinIO: https://host/bucket/key
+          aws s3 cp $env:FIRMWARE_S3_PATH GMMK_Numpad_88.hex --endpoint-url $env:MINIO_ENDPOINT --only-show-errors
+          if ($LASTEXITCODE) { throw "download failed" }
+          $hash = (Get-FileHash GMMK_Numpad_88.hex -Algorithm SHA256).Hash.ToLower()
+          if ($hash -ne $env:STOCK_HEX_SHA256) { throw "GMMK_Numpad_88.hex has SHA-256 $hash, expected $env:STOCK_HEX_SHA256" }
+          "present=true" >> $env:GITHUB_OUTPUT
+
+      - name: Build firmware add-on
+        if: steps.firmware.outputs.present == 'true'
+        run: |
+          $zip = "xpack-arm-none-eabi-gcc-$env:ARM_GCC_VERSION-win32-x64.zip"
+          Invoke-WebRequest "https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v$env:ARM_GCC_VERSION/$zip" -OutFile $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          if ($hash -ne $env:ARM_GCC_SHA256) { throw "$zip has SHA-256 $hash, expected $env:ARM_GCC_SHA256" }
+          Expand-Archive $zip -DestinationPath $env:RUNNER_TEMP\arm-gcc
+          $env:ARM_GCC_BIN = "$env:RUNNER_TEMP\arm-gcc\xpack-arm-none-eabi-gcc-$env:ARM_GCC_VERSION\bin"
+          python fw/build.py
+          if ($LASTEXITCODE) { throw "fw/build.py failed" }
+          "app_suite.bin SHA-256: " + (Get-FileHash _re/fw/build/app_suite.bin -Algorithm SHA256).Hash.ToLower()
+
+      - name: Build exe
+        run: |
+          python packaging/build_exe.py
+          if ($LASTEXITCODE) { throw "build failed" }
+          $name = if ($env:GITHUB_REF_TYPE -eq "tag") { "GMMK-Numpad-Suite-$env:GITHUB_REF_NAME.exe" } else { "GMMK-Numpad-Suite.exe" }
+          Copy-Item "dist/GMMK Numpad Suite.exe" $name
+          "EXE_NAME=$name" >> $env:GITHUB_ENV
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GMMK-Numpad-Suite
+          path: ${{ env.EXE_NAME }}
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = if ("${{ steps.firmware.outputs.present }}" -eq "true") { "" } else { "Note: this build has no firmware images (Settings can't update the firmware)." }
+          gh release create $env:GITHUB_REF_NAME $env:EXE_NAME --title "GMMK Numpad Suite $env:GITHUB_REF_NAME" --generate-notes --notes "$notes"

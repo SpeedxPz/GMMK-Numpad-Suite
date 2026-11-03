@@ -1,0 +1,24 @@
+# GMMK Numpad Suite (Windows, Python 3.12). Versions are the ones the releases are built and tested with.
+hidapi==0.15.0
+obsws-python==1.8.0
+websocket-client==1.9.2
+pystray==0.19.5
+pillow==13.0.0
+pycaw==20260927
+comtypes==1.4.17
+psutil==7.2.2
+winrt-runtime==4.0.3
+winrt-Windows.Devices.Bluetooth==4!10.0.28000.2705
+winrt-Windows.Devices.Bluetooth.Advertisement==4!10.0.28000.2705
+winrt-Windows.Devices.Radios==4!10.0.28000.2705
+winrt-Windows.Devices.Bluetooth.GenericAttributeProfile==4!10.0.28000.2705
+winrt-Windows.Devices.Enumeration==4!10.0.28000.2705
+winrt-Windows.Foundation==4!10.0.28000.2705
+winrt-Windows.Foundation.Collections==4!10.0.28000.2705
+winrt-Windows.Media.Control==4!10.0.28000.2705
+winrt-Windows.Storage.Streams==4!10.0.28000.2705
+
+# build only: the exe (packaging/build_exe.py) and the firmware add-on check (fw/build.py)
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.9
+capstone==5.0.9

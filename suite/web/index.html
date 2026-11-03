@@ -1,0 +1,1183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GMMK Numpad Suite</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* Styling follows StellarLog's dark cosmic design system (services/stellar-logs/site/src/styles/global.css):
+     same palette, violet + cyan accents, Inter for text and Space Grotesk for display. Fonts are self-hosted. */
+  @font-face { font-family:"Inter Variable"; font-style:normal; font-display:swap; font-weight:100 900; src:url(/fonts/inter-latin-wght-normal.woff2) format("woff2"); }
+  @font-face { font-family:"Space Grotesk Variable"; font-style:normal; font-display:swap; font-weight:300 700; src:url(/fonts/space-grotesk-latin-wght-normal.woff2) format("woff2"); }
+  :root {
+    --wrap:1400px; --gutter:max(clamp(16px,3vw,28px), calc((100vw - var(--wrap)) / 2));
+    --bg:#08080c; --bg2:#0c0d13; --panel:#12131c; --panel2:#171927; --line:#23263a; --line2:#191b28;
+    --text:#eceefb; --muted:#9aa0bd; --dim:#646a87; --accent:#7c5cff; --accent2:#37c8e0; --acc-soft:#1a1733;
+    --good:#46c08a; --bad:#ff6b6b;
+    --font:"Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --display:"Space Grotesk Variable", -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  html { color-scheme:dark; }
+  * { box-sizing:border-box; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+  ::-webkit-scrollbar { width:10px; height:10px; } ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--line); border-radius:5px; border:2px solid transparent; background-clip:padding-box; }
+  body { margin:0; font:14px/1.5 var(--font); font-variant-numeric:tabular-nums; color:var(--text); min-height:100vh;
+         background: radial-gradient(1100px 500px at 80% -10%, #15123180 0%, transparent 60%),
+                     radial-gradient(900px 400px at -10% 0%, #0d2a3360 0%, transparent 55%), var(--bg);
+         background-attachment:fixed; }
+  /* nav bar */
+  header { display:flex; align-items:center; gap:14px; padding:10px var(--gutter); background:var(--panel); border-bottom:1px solid var(--line);
+           position:sticky; top:0; z-index:10; flex-wrap:wrap; }
+  .logo { display:flex; align-items:center; gap:9px; font-family:var(--display); font-weight:700; font-size:1.18rem; letter-spacing:-.01em; margin:0; }
+  .logo .mark { width:20px; height:20px; flex:none; }
+  .logo .mark rect { fill:#3a3f5c; } .logo .mark rect.hot { fill:var(--bad); filter:drop-shadow(0 0 4px #ff6b6b99); }
+  .logo .word { background:linear-gradient(92deg,#a48bff,var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .logo .sub { color:var(--dim); font-family:var(--font); font-weight:600; font-size:.8rem; letter-spacing:.12em; text-transform:uppercase; }
+  .spacer { flex:1; }
+  .chip { display:inline-flex; align-items:center; gap:8px; height:28px; padding:0 12px; border-radius:999px; background:var(--bg2); border:1px solid var(--line);
+          font-size:12.5px; font-weight:600; color:var(--muted); white-space:nowrap; }
+  .chip::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--dim); }
+  .chip.ok { color:var(--text); } .chip.ok::before { background:var(--good); box-shadow:0 0 8px var(--good); }
+  .chip.live { color:#ffd0d0; border-color:#4a2630; background:#1a0f14; } .chip.live::before { background:var(--bad); box-shadow:0 0 10px var(--bad); animation:breathe 1.6s infinite; }
+  .seg { display:flex; gap:4px; background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:4px; }
+  .seg button { background:none; border:0; color:var(--muted); font-weight:600; font-size:13px; padding:5px 13px; border-radius:7px; }
+  .seg button:hover:not(.on) { color:var(--text); background:none; }
+  .seg button.on { background:var(--acc-soft); color:var(--text); box-shadow:inset 0 0 0 1px #34306a; }
+  nav { display:flex; gap:6px; padding:10px var(--gutter) 0; }
+  nav button { background:none; border:0; font-weight:600; font-size:13px; color:var(--muted); padding:8px 13px; border-radius:8px; }
+  nav button:hover { color:var(--text); background:#171827; }
+  nav button.on { color:var(--text); background:var(--acc-soft); box-shadow:inset 0 0 0 1px #34306a; }
+  main { display:grid; grid-template-columns:minmax(380px,1fr) minmax(330px,450px); gap:18px; padding:16px var(--gutter) 28px; align-items:start; }
+  .col { display:flex; flex-direction:column; gap:18px; }
+  @media (max-width: 900px) { main { grid-template-columns:minmax(0,1fr); } }
+  /* cards: StellarLog feed-panel with a header strip */
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:13px; padding:0 18px 16px; overflow:hidden; }
+  .card h2 { display:flex; align-items:center; gap:9px; margin:0 -18px 14px; padding:12px 18px; background:var(--panel2); border-bottom:1px solid var(--line);
+             font-size:12px; font-weight:700; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); }
+  .card h2::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--accent2); box-shadow:0 0 10px var(--accent2); transform:translateY(-1px); }
+  label.row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 2px; margin:0; border-bottom:1px solid var(--line2); font-size:13px; font-weight:600; }
+  label.row:last-of-type { border-bottom:0; }
+  select, input[type=number], input[type=text] { background:var(--bg2); color:var(--text); border:1px solid var(--line); border-radius:9px; padding:7px 10px;
+         min-width:180px; font:500 13px var(--font); outline:none; transition:border-color .15s, box-shadow .15s; }
+  select:focus, input[type=number]:focus, input[type=text]:focus { border-color:var(--accent); box-shadow:0 0 0 3px #7c5cff26; }
+  input[type=text] { min-width:0; width:100%; }
+  input[type=range] { width:180px; accent-color:var(--accent); }
+  input[type=color] { width:44px; height:30px; border:1px solid var(--line); border-radius:8px; background:var(--bg2); padding:3px; cursor:pointer; }
+  input[type=checkbox]:not(.toggle) { accent-color:var(--accent); }
+  button { background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:9px; padding:7px 13px; cursor:pointer; font:600 13px var(--font);
+           transition:border-color .15s, background .15s, color .15s; }
+  button:hover { border-color:#34306a; background:#1c1d30; }
+  button:disabled { opacity:.5; cursor:default; }
+  button.primary { color:#fff; border:1px solid #9d83ff; background:linear-gradient(180deg,#8a6cff,var(--accent)); box-shadow:inset 0 1px 0 #ffffff30; }
+  button.primary:hover { filter:brightness(1.08); }
+  button.rec { color:#ff9a9a; background:#22141a; border-color:#4a2630; }
+  .btns { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; align-items:center; }
+  .hint { color:var(--dim); font-size:12px; margin:10px 0 0; }
+  .hidden { display:none !important; }
+  .banner { display:flex; gap:14px; align-items:flex-start; justify-content:space-between; margin:14px var(--gutter) 0; padding:12px 16px;
+            border:1px solid #34306a; border-radius:12px; background:linear-gradient(90deg, var(--acc-soft), #0f2a30); font-size:13px; }
+  .banner button { background:none; border-color:transparent; color:var(--muted); padding:2px 8px; }
+  /* device picture */
+  .pad { display:flex; gap:12px; justify-content:center; padding:22px; border-radius:14px; border:1px solid var(--line); user-select:none;
+         background:radial-gradient(420px 260px at 50% 0%, #1a173355, transparent 70%), var(--bg2); box-shadow:inset 0 1px 0 #ffffff08, 0 18px 50px -22px #00000099; }
+  .bar { display:flex; flex-direction:column; gap:6px; justify-content:center; }
+  .bar .led { width:12px; height:30px; border-radius:4px; }
+  .grid { display:grid; grid-template-columns:repeat(4,62px) 56px; grid-template-rows:repeat(5,62px); gap:7px; }
+  .key { border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; font:700 15px var(--display); color:#0008;
+         border:2px solid transparent; cursor:pointer; box-shadow:inset 0 -4px 0 #0003; overflow:hidden; text-align:center; transition:box-shadow .15s; }
+  .key small { font:700 10px/1.15 var(--font); max-width:100%; padding:0 3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .led { cursor:pointer; border:2px solid transparent; }
+  .sel { border-color:#fff !important; box-shadow:0 0 0 3px #7c5cffaa, 0 0 18px #7c5cff66 !important; }
+  .knob { grid-column:5; grid-row:1; border-radius:50%; background:radial-gradient(circle at 40% 35%,#30344a,#16182a); border:3px solid #34384f; align-self:center; justify-self:center;
+          width:48px; height:48px; display:flex; align-items:center; justify-content:center; font:700 9px var(--font); color:#cdbcff; overflow:hidden; text-align:center; }
+  .keysmode .knob, .keysmode .slider { cursor:pointer; }
+  .keysmode .bar .led { cursor:default; opacity:.35; }
+  .slider { grid-column:5; grid-row:2 / span 2; justify-self:center; width:14px; border-radius:7px; background:#16182a; border:1px solid var(--line); position:relative; }
+  .slider { --pos:0.55; }
+  .slider::before { content:""; position:absolute; left:3px; right:3px; bottom:3px; height:calc(var(--pos) * (100% - 6px)); border-radius:4px; background:rgba(120,140,255,.28); }
+  .slider::after { content:""; position:absolute; left:-10px; top:calc((1 - var(--pos)) * (100% - 14px)); width:32px; height:14px; border-radius:4px; background:#3a3f5c; transition:top .12s linear; }
+  .slider.live::after { background:#8f9cff; }
+  .breathing { animation:breathe 1.6s ease-in-out infinite; }
+  @keyframes breathe { 50% { filter:brightness(.35); } }
+  pre.log { max-height:260px; overflow:auto; background:var(--bg2); border:1px solid var(--line); border-radius:9px; padding:10px 12px; color:var(--muted);
+            font:12px/1.55 ui-monospace, "Cascadia Code", Consolas, monospace; margin:12px 0 0; }
+  /* StellarLog .swi switch */
+  .toggle { appearance:none; width:38px; height:22px; border-radius:12px; background:#262a3c; position:relative; cursor:pointer; flex:none; margin:0; }
+  .toggle::after { content:""; position:absolute; top:2.5px; left:2.5px; width:17px; height:17px; border-radius:50%; background:#8a90ad; transition:left .15s, background .15s; }
+  .toggle:checked { background:var(--accent); } .toggle:checked::after { left:18.5px; background:#fff; }
+  .mods { display:flex; gap:14px; flex-wrap:wrap; padding:10px 2px; font-size:13px; font-weight:600; }
+  .mods label { display:flex; gap:6px; align-items:center; }
+  /* macros (StellarLog charchip list) */
+  .mlist { display:flex; flex-direction:column; gap:8px; }
+  .mlist button { text-align:left; display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 12px; border-radius:10px; background:#0e0f18; }
+  .mlist button.on { border-color:#34306a; background:var(--acc-soft); }
+  .events { max-height:420px; overflow:auto; border:1px solid var(--line); border-radius:10px; margin-top:12px; background:var(--bg2); }
+  .ev { display:grid; grid-template-columns:26px 1fr 110px 30px; gap:8px; align-items:center; padding:6px 10px; border-bottom:1px solid var(--line2); font-size:13px; }
+  .ev:last-child { border-bottom:0; }
+  .ev:hover { background:#ffffff05; }
+  .ev input { min-width:0; width:100%; padding:4px 7px; }
+  .ev .down { color:var(--good); font-weight:700; } .ev .up { color:var(--dim); font-weight:700; }
+  .ev button { padding:2px 0; background:none; border-color:transparent; color:var(--dim); }
+  .ev button:hover { color:#ff9a9a; background:#22141a; border-color:#4a2630; }
+  .empty { color:var(--muted); padding:18px; text-align:center; }
+  /* integrations: sub-tabs + setup guides */
+  .subnav { grid-column:1 / -1; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .seg .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--dim); margin-right:7px; transform:translateY(-1px); }
+  .seg .dot.ok { background:var(--good); box-shadow:0 0 8px var(--good); } .seg .dot.bad { background:var(--bad); }
+  .status { display:flex; align-items:center; gap:9px; padding:9px 12px; margin-bottom:6px; border-radius:9px; background:var(--bg2); border:1px solid var(--line); font-size:13px; font-weight:600; color:var(--muted); }
+  .status::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--dim); flex:none; }
+  .status.ok { color:var(--text); } .status.ok::before { background:var(--good); box-shadow:0 0 8px var(--good); }
+  .status.bad { color:#ffb4b4; } .status.bad::before { background:var(--bad); }
+  .status.wait::before { background:#ffb347; animation:breathe 1.6s infinite; }
+  .guide { margin:0; padding-left:22px; display:flex; flex-direction:column; gap:7px; font-size:13px; color:var(--muted); }
+  .guide b { color:var(--text); }
+  .card h3 { margin:16px 0 8px; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
+  code { font:12px ui-monospace, "Cascadia Code", Consolas, monospace; background:var(--bg2); border:1px solid var(--line); border-radius:5px; padding:1px 5px; color:var(--text); }
+  a { color:var(--accent2); }
+</style>
+</head>
+<body>
+<header>
+  <h1 class="logo"><svg class="mark" viewBox="0 0 20 20" aria-hidden="true"><rect x="1.0" y="1.0" width="5" height="5" rx="1.3" class=""/><rect x="7.5" y="1.0" width="5" height="5" rx="1.3" class=""/><rect x="14.0" y="1.0" width="5" height="5" rx="1.3" class="hot"/><rect x="1.0" y="7.5" width="5" height="5" rx="1.3" class=""/><rect x="7.5" y="7.5" width="5" height="5" rx="1.3" class=""/><rect x="14.0" y="7.5" width="5" height="5" rx="1.3" class=""/><rect x="1.0" y="14.0" width="5" height="5" rx="1.3" class=""/><rect x="7.5" y="14.0" width="5" height="5" rx="1.3" class=""/><rect x="14.0" y="14.0" width="5" height="5" rx="1.3" class=""/></svg><span class="word">GMMK Numpad</span><span class="sub">Suite</span></h1>
+  <div class="seg" id="profiles" title="Profile (Fn+9 / Fn+7 on the numpad switches too)"></div>
+  <div class="seg" id="layers" title="Layer: each has its own key map, knob and slider (Fn+3 / Fn+1 on the numpad)"></div>
+  <span class="spacer"></span>
+  <span id="devChip" class="chip">numpad: …</span>
+  <span id="infoChip" class="chip hidden"></span>
+  <span id="obsChip" class="chip">OBS: …</span>
+</header>
+<nav id="tabs">
+  <button data-tab="lighting" class="on">Lighting</button>
+  <button data-tab="keys">Keys</button>
+  <button data-tab="macros">Macros</button>
+  <button data-tab="integrations">Integrations</button>
+  <button data-tab="settings">Settings</button>
+</nav>
+
+<div id="fwBanner" class="banner hidden">
+  <div><b id="fwBannerTitle">Firmware add-on available.</b> <span id="fwBannerText"></span>
+    <div class="hint" id="fwBannerWhy" style="margin:4px 0 0"></div></div>
+  <button id="fwBannerClose" title="Hide until the next add-on version">✕</button>
+</div>
+<main id="padView">
+  <section class="card">
+    <h2 id="padTitle">Lighting</h2>
+    <div class="pad" id="pad">
+      <div class="bar" id="barL"></div>
+      <div class="grid" id="grid"></div>
+      <div class="bar" id="barR"></div>
+    </div>
+    <div id="lightTools">
+      <p class="hint">Click keys or side LEDs to select (Shift/Ctrl to add), then pick a colour. What you see includes the live OBS status lights.</p>
+      <div class="btns">
+        <label class="row" style="margin:0">Colour for selection <input type="color" id="selColor" value="#ff0000"></label>
+      </div>
+      <div class="btns">
+        <button data-select="keys">Select all keys</button>
+        <button data-select="sides">Select side bars</button>
+        <button data-select="all">Select everything</button>
+        <button data-select="none">Clear selection</button>
+        <button id="resetKeys">Reset selection to base colour</button>
+      </div>
+    </div>
+    <p class="hint hidden" id="keysHint">Click a key, the knob or the slider to change what it does (per profile). Num Lock is the numpad's Fn key and can't be remapped.
+      Keys that hold an OBS action light up with its status.</p>
+    <div class="btns hidden" id="layerTools"><span class="hint" style="margin:0" id="layerToolsLabel"></span><span id="copyLayerBtns" class="btns" style="margin:0"></span>
+      <button id="resetLayer">Reset this layer</button></div>
+  </section>
+
+  <div class="col">
+    <section class="card" id="effectCard">
+      <h2>Effect</h2>
+      <label class="row">Effect <select id="effect"></select></label>
+      <label class="row" id="multicolorRow">Multicolour <input type="checkbox" class="toggle" id="multicolor"></label>
+      <label class="row" id="baseColorRow">Base colour <input type="color" id="baseColor"></label>
+      <label class="row">Speed <input type="range" id="speed" min="0" max="100"></label>
+      <label class="row">Brightness <input type="range" id="brightness" min="0" max="100"></label>
+      <label class="row">Side lights <input type="checkbox" class="toggle" id="sidelights"></label>
+      <label class="row">Show layer on side bars <input type="checkbox" class="toggle" id="layerInd"></label>
+      <label class="row" id="layerIndColorRow">Layer indicator colour <input type="color" id="layerIndColor"></label>
+      <p class="hint" id="effectHint"></p>
+      <div class="btns"><button id="resetLighting">Reset this profile's lighting</button></div>
+    </section>
+
+    <section class="card hidden" id="bindCard">
+      <h2 id="bindTitle">Key</h2>
+      <div id="bindEmpty" class="hint">Select a key on the left.</div>
+      <div id="bindForm" class="hidden">
+        <label class="row">Does <select id="bType">
+          <option value="default">Default (factory)</option>
+          <option value="key">Keystroke</option>
+          <option value="media">Media / Windows</option>
+          <option value="action">App action (PC, Media, OBS, Discord, VoiceMeeter)</option>
+          <option value="macro">Macro</option>
+          <option value="function">Switch profile / layer</option>
+          <option value="disabled">Nothing (disabled)</option>
+        </select></label>
+        <div id="bFields"></div>
+        <p class="hint" id="bHint"></p>
+      </div>
+      <div id="ctlForm" class="hidden">
+        <label class="row"><span id="ctlLabel">Turning</span> <select id="ctlGroup"></select></label>
+        <label class="row" id="ctlTypeRow">OBS control <select id="ctlType"></select></label>
+        <label class="row" id="ctlSourceRow">Audio source <select id="ctlSource"></select></label>
+        <label class="row" id="ctlStepRow">Step per click (dB) <input type="number" id="ctlStep" min="0.5" max="10" step="0.5"></label>
+        <p class="hint" id="ctlHint"></p>
+      </div>
+      <div class="btns hidden" id="bindResetRow"><button id="bindReset">Reset to default</button></div>
+    </section>
+  </div>
+</main>
+
+<main id="macroView" class="hidden">
+  <section class="card">
+    <h2>Macros</h2>
+    <div class="mlist" id="mlist"></div>
+    <div class="btns"><button id="newMacro">+ New macro</button></div>
+    <p class="hint">Macros are stored on the numpad and shared by all profiles. Assign one to a key in the Keys tab.</p>
+  </section>
+  <section class="card" id="macroEditor">
+    <h2>Edit macro</h2>
+    <div id="mEmpty" class="hint">Select or create a macro.</div>
+    <div id="mForm" class="hidden">
+      <label class="row">Name <input type="text" id="mName" maxlength="40" style="max-width:240px"></label>
+      <div class="btns">
+        <button id="mRecord">● Record</button>
+        <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="mDelays" checked> record delays</label>
+        <span class="spacer"></span>
+        <span class="hint" id="mCount" style="margin:0"></span>
+      </div>
+      <div class="events" id="mEvents"></div>
+      <div class="btns">
+        <select id="mAddKey"></select><button id="mAddTap">+ Add key press</button>
+      </div>
+      <div class="btns">
+        <button class="primary" id="mSave">Save to numpad</button>
+        <button id="mDelete">Delete</button>
+        <span class="hint" id="mStatus" style="margin:0"></span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<main id="integrationsView" class="hidden">
+  <div class="subnav">
+    <div class="seg" id="integrationTabs">
+      <button data-int="obs" class="on"><span class="dot" id="obsDot"></span>OBS Studio</button>
+      <button data-int="discord"><span class="dot" id="discordDot"></span>Discord</button>
+      <button data-int="voicemeeter"><span class="dot" id="vmDot"></span>VoiceMeeter</button>
+    </div>
+    <span class="hint" style="margin:0">Apps the numpad talks to directly, with the app in the background (no hotkeys). Bind keys to them in the Keys tab → “App action”, then pick the app.</span>
+  </div>
+
+  <div class="col" data-intpane="obs">
+    <section class="card">
+      <h2>OBS Studio</h2>
+      <div class="status" id="obsStatus"></div>
+      <label class="row">Enabled <input type="checkbox" class="toggle" id="obsEnabled"></label>
+      <label class="row">Status lights <input type="checkbox" class="toggle" id="obsOverlay"></label>
+      <p class="hint">What the keys, knob and slider do in OBS is set per profile and layer in the Keys tab.</p>
+      <div class="btns"><button id="reloadSources">Reload OBS scenes &amp; sources</button></div>
+    </section>
+  </div>
+  <section class="card" data-intpane="obs">
+    <h2>Setup guide</h2>
+    <ol class="guide">
+      <li>Open OBS Studio (version 28 or newer has the WebSocket server built in).</li>
+      <li>Go to <b>Tools → WebSocket Server Settings</b>.</li>
+      <li>Tick <b>Enable WebSocket server</b>. Leave the port at <code>4455</code>.</li>
+      <li>Leave <b>Enable Authentication</b> on. The suite reads the password from OBS's own settings on this PC, so you never type it.</li>
+      <li>Click <b>OK</b>. The OBS chip at the top turns green within a few seconds.</li>
+      <li>In the Keys tab, set keys to <b>App action → OBS Studio</b>: record, stream, pause, scenes, mute, TAKE, replay buffer. Set the knob or slider to an OBS control.</li>
+    </ol>
+    <h3>Optional</h3>
+    <ul class="guide">
+      <li><b>Replay buffer keys:</b> enable it in OBS → Settings → Output → Replay Buffer.</li>
+      <li><b>Studio Mode:</b> scene keys and the knob go to Preview; a TAKE key sends it live. The slider can be the T-bar.</li>
+    </ul>
+    <p class="hint">Not connecting? Check that OBS is running and that the port in OBS is 4455.</p>
+  </section>
+
+  <div class="col hidden" data-intpane="discord">
+    <section class="card">
+      <h2>Discord</h2>
+      <div class="status" id="discordStatus"></div>
+      <label class="row">Enabled <input type="checkbox" class="toggle" id="discordEnabled"></label>
+      <label class="row">Client ID <input type="text" id="discordClientId" inputmode="numeric" autocomplete="off" style="max-width:240px" placeholder="e.g. 1234567890123456789"></label>
+      <label class="row">Client secret <input type="password" id="discordSecret" autocomplete="off" style="max-width:240px;background:var(--bg2);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:500 13px var(--font)"></label>
+      <div class="btns">
+        <button class="primary" id="discordConnect">Save &amp; connect</button>
+        <button id="discordForget" title="Removes the Discord authorization from this PC; the next connect asks in Discord again">Forget authorization</button>
+      </div>
+      <p class="hint">The secret and the authorization stay on this PC and are not part of backups.</p>
+    </section>
+  </div>
+  <section class="card hidden" data-intpane="discord">
+    <h2>Setup guide</h2>
+    <p class="hint" style="margin:0 0 8px">Discord only lets apps that you own control your mic, so you make a small app of your own once (about 2 minutes).</p>
+    <ol class="guide">
+      <li>Open the <a href="https://discord.com/developers/applications" target="_blank" rel="noopener">Discord Developer Portal</a> and sign in with your Discord account.</li>
+      <li>Click <b>New Application</b> and name it, e.g. “GMMK Numpad”.</li>
+      <li>Open <b>OAuth2</b> in the left menu. Copy the <b>Client ID</b> into the box on the left.</li>
+      <li>Click <b>Reset Secret</b>, then copy the <b>Client Secret</b> into the box on the left.</li>
+      <li>Under <b>Redirects</b>, add <code>http://localhost</code> and click <b>Save Changes</b>.</li>
+      <li>Open <b>App Testers</b> in the left menu and add your own Discord account (even as the app's owner), then accept the invite. Without it Discord answers <code>invalid_scope</code>.</li>
+      <li>Here, turn <b>Enabled</b> on and click <b>Save &amp; connect</b>. Discord must be running on this PC (the desktop app, not the browser).</li>
+      <li>Discord shows an <b>Authorize</b> popup. Click <b>Authorize</b>. You only do this once.</li>
+      <li>In the Keys tab, set a key to <b>App action → Discord → Mute / unmute mic</b> or <b>Deafen</b>. It lights green while you're live and red while muted.</li>
+    </ol>
+    <p class="hint">It works for the Discord account that owns the app. Declined the popup by mistake? Click Save &amp; connect again.</p>
+  </section>
+
+  <div class="col hidden" data-intpane="voicemeeter">
+    <section class="card">
+      <h2>VoiceMeeter</h2>
+      <div class="status" id="vmStatus"></div>
+      <label class="row">Enabled <input type="checkbox" class="toggle" id="vmEnabled"></label>
+      <p class="hint">Uses VoiceMeeter's own remote API on this PC: no account, password or setting in VoiceMeeter needed. Works with Basic, Banana and Potato.</p>
+    </section>
+  </div>
+  <section class="card hidden" data-intpane="voicemeeter">
+    <h2>Setup guide</h2>
+    <ol class="guide">
+      <li>Install <a href="https://vb-audio.com/Voicemeeter/" target="_blank" rel="noopener">VoiceMeeter</a> (Basic, Banana or Potato) and start it.</li>
+      <li>Turn <b>Enabled</b> on here. The status shows the edition once it's connected.</li>
+      <li>In the Keys tab, set keys to <b>App action → VoiceMeeter</b>:
+        <ul>
+          <li><b>Mute</b> an input (strip) or output (bus): green while live, red while muted.</li>
+          <li><b>Route</b> an input to an output (e.g. VStreaming → B1): blue while on.</li>
+          <li><b>Macro Button</b> toggle or press: amber while the button is on.</li>
+        </ul></li>
+      <li>Set the knob or the slider to <b>VoiceMeeter → Input / output gain</b>. The slider covers VoiceMeeter's full fader range (−60 to +12 dB).</li>
+    </ol>
+    <h3>Notes</h3>
+    <ul class="guide">
+      <li>Names come from VoiceMeeter: give strips a label there (click the name above a strip) to see it here.</li>
+      <li>Macro Buttons need the <b>VoiceMeeter Macro Buttons</b> app running. The numbers are the button IDs shown in it.</li>
+      <li>Changes made in VoiceMeeter itself show on the numpad's lights too.</li>
+    </ul>
+  </section>
+</main>
+
+<main id="settingsView" class="hidden">
+  <div class="col">
+    <section class="card">
+      <h2>Numpad settings</h2>
+      <label class="row">Polling rate (USB) <select id="pollingHz">
+        <option value="1000">1000 Hz (1 ms)</option><option value="500">500 Hz (2 ms)</option>
+        <option value="250">250 Hz (4 ms)</option><option value="125">125 Hz (8 ms)</option></select></label>
+      <label class="row">Key scan interval <span style="display:flex;gap:10px;align-items:center">
+        <input type="range" id="scanMs" min="2" max="8" step="1"><b id="scanMsLabel" style="width:40px"></b></span></label>
+      <label class="row">Lighting off when idle <select id="ledSleep">
+        <option value="0">Never</option><option value="1">After 1 min</option><option value="5">After 5 min</option>
+        <option value="10">After 10 min</option><option value="15">After 15 min</option><option value="30">After 30 min</option>
+        <option value="60">After 60 min</option></select></label>
+      <p class="hint">Polling rate: how often key presses are sent over USB (Bluetooth has its own timing).
+        Key scan interval (debounce, stock 8 ms): how often the keys are read. Lower is snappier, but a worn switch may double-type.
+        Lighting off when idle: the LEDs (including OBS status lights) switch off until the next key press.</p>
+    </section>
+    <section class="card">
+      <h2>Low battery warning</h2>
+      <label class="row">Warn over Bluetooth <input type="checkbox" id="battWarn"></label>
+      <label class="row" id="battLevelRow">When the battery is at or under <select id="battLevel">
+        <option value="10">10 %</option><option value="15">15 %</option><option value="20">20 %</option>
+        <option value="30">30 %</option><option value="40">40 %</option></select></label>
+      <p class="hint">The side bars pulse the battery gauge for 5 seconds when the numpad connects over Bluetooth and every 5 minutes after that, while the battery stays low. On USB it charges, so it doesn't warn. A key set to PC → Show battery on the side bars shows the level any time.</p>
+    </section>
+    <section class="card">
+      <h2>Profile</h2>
+      <label class="row">Name of the active profile <input type="text" id="profName" maxlength="40" style="max-width:200px"></label>
+      <p class="hint">Each profile has its own lighting and three layers (each with its own keys, knob and slider), all stored on the numpad. Switch with the buttons at the top, Fn+9 / Fn+7 (profiles) or Fn+3 / Fn+1 (layers).</p>
+    </section>
+  </div>
+  <div class="col">
+    <section class="card">
+      <h2>Firmware &amp; sync</h2>
+      <div id="fwCard" style="margin:0 0 14px">
+        <label class="row">Firmware <b id="fwStatus"></b></label>
+        <div class="btns" id="fwButtons"><button class="primary" id="fwInstall">Install add-on</button><button id="fwRestore">Restore stock firmware</button></div>
+        <div id="fwProgress" class="hidden" style="margin-top:10px">
+          <div style="height:8px;border-radius:4px;background:var(--bg2);border:1px solid var(--line);overflow:hidden">
+            <div id="fwBar" style="height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>
+          <p class="hint" id="fwStep" style="margin-top:6px"></p></div>
+        <p class="hint" id="fwHint"></p>
+      </div>
+      <div class="btns"><button id="resync">Resync numpad</button>
+        <span class="hint" style="margin:0">Writes every profile and layer again: use after a factory reset or after Glorious CORE changed the numpad.</span></div>
+    </section>
+    <section class="card">
+      <h2>App</h2>
+      <label class="row">Start with Windows <input type="checkbox" class="toggle" id="autostart"></label>
+      <div class="btns"><a href="/api/backup" download><button type="button">Export backup</button></a>
+        <button id="importBackup">Import backup…</button><input type="file" id="importFile" accept=".json,application/json" class="hidden">
+        <span class="hint" style="margin:0">All profiles, layers, macros, OBS and numpad settings in one file.</span></div>
+      <div class="btns"><button id="resetAll">Reset all profiles &amp; macros</button>
+        <span class="hint" style="margin:0">Every profile, layer and macro back to the suite's defaults. OBS, numpad and app settings stay.</span></div>
+    </section>
+    <section class="card">
+      <h2>Log</h2>
+      <pre class="log" id="log"></pre>
+    </section>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const hex = (rgb) => "#" + rgb.map((v) => v.toString(16).padStart(2, "0")).join("");
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let layout, state, tab = "lighting", selected = new Set(), selKey = null, overlay = {}, breathing = new Set();
+let obsLists = { sources: [], scenes: [] };
+
+// Physical layout: [label, key name, gridColumn, gridRow, colSpan, rowSpan]
+const KEYS = [
+  ["Num", "NumLock", 1, 1], ["/", "Divide", 2, 1], ["*", "Multiply", 3, 1], ["−", "Subtract", 4, 1],
+  ["7", "7", 1, 2], ["8", "8", 2, 2], ["9", "9", 3, 2], ["+", "Add", 4, 2, 1, 2],
+  ["4", "4", 1, 3], ["5", "5", 2, 3], ["6", "6", 3, 3],
+  ["1", "1", 1, 4], ["2", "2", 2, 4], ["3", "3", 3, 4], ["Enter", "Enter", 4, 4, 1, 2],
+  ["0", "0", 1, 5, 2, 1], [".", "Decimal", 3, 5],
+];
+const KEY_LABEL = Object.fromEntries(KEYS.map(([l, n]) => [n, l])); KEY_LABEL.Encoder = "Knob"; KEY_LABEL.Slider = "Slider";
+
+// KeyboardEvent.code -> HID usage (the numpad sends HID usages)
+const HID = {};
+"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach((c, i) => HID["Key" + c] = 0x04 + i);
+"1234567890".split("").forEach((c, i) => HID["Digit" + c] = 0x1E + i);
+for (let i = 1; i <= 12; i++) HID["F" + i] = 0x39 + i;
+for (let i = 13; i <= 24; i++) HID["F" + i] = 0x68 + i - 13;
+for (let i = 1; i <= 9; i++) HID["Numpad" + i] = 0x58 + i;
+Object.assign(HID, { Enter: 0x28, Escape: 0x29, Backspace: 0x2A, Tab: 0x2B, Space: 0x2C, Minus: 0x2D, Equal: 0x2E,
+  BracketLeft: 0x2F, BracketRight: 0x30, Backslash: 0x31, Semicolon: 0x33, Quote: 0x34, Backquote: 0x35, Comma: 0x36,
+  Period: 0x37, Slash: 0x38, CapsLock: 0x39, PrintScreen: 0x46, ScrollLock: 0x47, Pause: 0x48, Insert: 0x49, Home: 0x4A,
+  PageUp: 0x4B, Delete: 0x4C, End: 0x4D, PageDown: 0x4E, ArrowRight: 0x4F, ArrowLeft: 0x50, ArrowDown: 0x51, ArrowUp: 0x52,
+  NumLock: 0x53, NumpadDivide: 0x54, NumpadMultiply: 0x55, NumpadSubtract: 0x56, NumpadAdd: 0x57, NumpadEnter: 0x58,
+  Numpad0: 0x62, NumpadDecimal: 0x63, IntlBackslash: 0x64, ContextMenu: 0x65,
+  ControlLeft: 0xE0, ShiftLeft: 0xE1, AltLeft: 0xE2, MetaLeft: 0xE3, ControlRight: 0xE4, ShiftRight: 0xE5, AltRight: 0xE6, MetaRight: 0xE7 });
+const PRETTY = { Escape: "Esc", Backspace: "Backspace", Space: "Space", Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]",
+  Backslash: "\\", Semicolon: ";", Quote: "'", Backquote: "`", Comma: ",", Period: ".", Slash: "/", PrintScreen: "PrtSc",
+  ArrowRight: "→", ArrowLeft: "←", ArrowDown: "↓", ArrowUp: "↑", PageUp: "PgUp", PageDown: "PgDn", ContextMenu: "Menu",
+  IntlBackslash: "\\ (ISO)", NumpadDivide: "Num /", NumpadMultiply: "Num *", NumpadSubtract: "Num −", NumpadAdd: "Num +",
+  NumpadEnter: "Num Enter", NumpadDecimal: "Num .", ControlLeft: "Left Ctrl", ShiftLeft: "Left Shift", AltLeft: "Left Alt",
+  MetaLeft: "Left Win", ControlRight: "Right Ctrl", ShiftRight: "Right Shift", AltRight: "Right Alt", MetaRight: "Right Win" };
+const HID_NAME = {};
+for (const [code, usage] of Object.entries(HID))
+  HID_NAME[usage] = PRETTY[code] || code.replace(/^Key|^Digit/, "").replace(/^Numpad(\d)/, "Num $1");
+const keyName = (u) => HID_NAME[u] || `0x${Number(u).toString(16)}`;
+const MOD_ORDER = ["ctrl", "shift", "alt", "win"];
+const MOD_LABEL = { ctrl: "Ctrl", shift: "Shift", alt: "Alt", win: "Win" };
+const MEDIA_SHORT = { media_player: "Player", play_pause: "⏯", mute: "Mute", volume_up: "Vol +", volume_down: "Vol −", stop: "⏹",
+  previous: "⏮", next: "⏭", browser_home: "Home", browser_refresh: "Refresh", browser_back: "Back", browser_forward: "Fwd",
+  browser_search: "Search", my_computer: "This PC", calculator: "Calc", email: "Mail" };
+const FUNCTION_LABEL = { profile_up: "Next profile", profile_down: "Previous profile", layer_up: "Next layer", layer_down: "Previous layer" };
+const FUNCTION_SHORT = { profile_up: "Profile +", profile_down: "Profile −", layer_up: "Layer +", layer_down: "Layer −" };
+const pretty = (s) => s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+const ACTION_SHORT = { obs_record: "REC", obs_stream: "LIVE", obs_pause: "PAUSE", obs_replay: "SAVE", obs_replay_toggle: "REPLAY", obs_transition: "TAKE", discord_mute: "MIC", discord_deafen: "DEAF", launch: "Open", mic_mute: "MIC", battery: "BATT", media_play_pause: "⏯", media_next: "⏭", media_prev: "⏮" };
+const MODE_LABEL = { once: "Play once per press", while_held: "Repeat while held", toggle: "Repeat until pressed again" };
+
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  const j = await r.json();
+  if (j.error && body) alert(j.error);
+  return j;
+}
+
+// ---------- status lights (mirrors suite/obs_link.py overlay_for) ----------
+function overlayFor(s) {
+  overlay = {}; breathing = new Set();
+  if (!s || !state.obs.enabled || !state.obs.overlay) return;
+  const [rec, paused, stream] = s, recC = paused ? [255, 120, 0] : [255, 0, 0];
+  for (const [key, b] of Object.entries(state.layer.keymap)) {
+    const led = layout.keys[key]; if (led == null || b.type !== "action") continue;
+    if (b.action === "obs_record") { overlay[led] = rec ? recC : [30, 0, 0]; if (rec && !paused) breathing.add(led); }
+    else if (b.action === "obs_stream") overlay[led] = stream ? [150, 0, 255] : [16, 0, 30];
+    else if (b.action === "obs_pause") overlay[led] = paused ? [255, 120, 0] : [30, 13, 0];
+    else if (b.action === "obs_scene" && state.obs.scene != null)  // tally: live red, preview orange
+      overlay[led] = b.scene === state.obs.scene ? [255, 0, 0] : b.scene === state.obs.preview ? [255, 90, 0] : [24, 24, 24];
+    else if (b.action === "obs_mute" && state.obs.muted[b.source] != null) overlay[led] = state.obs.muted[b.source] ? [220, 0, 0] : [0, 200, 60];
+    else if (b.action === "obs_replay" || b.action === "obs_replay_toggle") overlay[led] = state.obs.replay ? [0, 200, 200] : [0, 20, 20];
+  }
+  if (rec || stream) for (const bar of [layout.side_left, layout.side_right]) bar.forEach((i, pos) => {
+    if (rec && (!stream || pos < 4)) { overlay[i] = recC; if (!paused) breathing.add(i); } else overlay[i] = [150, 0, 255];
+  });
+}
+
+function colorOf(i) {
+  if (overlay[i]) return overlay[i];
+  const L = state.profile.lighting, own = L.per_key[String(i)];
+  if (!L.sidelights && (layout.side_left.includes(i) || layout.side_right.includes(i))) return [0, 0, 0];  // as DeviceManager.compose
+  if (own) return own;
+  const fx = Number(L.effect);
+  return fx === 7 ? L.color : fx === 0 ? [0, 0, 0] : null;  // null = effect animates here
+}
+
+function bindingLabel(b) {
+  if (!b) return "";
+  switch (b.type) {
+    case "key": return [...b.mods.map((m) => MOD_LABEL[m]), keyName(b.code)].join("+");
+    case "media": return MEDIA_SHORT[b.action] || pretty(b.action);
+    case "function": return FUNCTION_SHORT[b.action] || b.action;
+    case "macro": return "▶ " + ((state.macros[b.macro] || {}).name || "?");
+    case "action": return (b.hold ? "⏷ " : "") + (b.action === "obs_scene" ? "🎬 " + (b.scene || "?") : b.action === "obs_mute" ? "🔇 " + (b.source || "?")
+      : b.action.startsWith("vm_") ? vmShort(b) : ACTION_SHORT[b.action] || b.action);
+    case "disabled": return "—";
+  }
+  return "";
+}
+
+// ---------- device picture ----------
+function buildPad() {
+  const grid = $("grid");
+  for (const [label, name, c, r, cs = 1, rs = 1] of KEYS) {
+    const el = document.createElement("div");
+    el.className = "key"; el.dataset.led = layout.keys[name]; el.dataset.key = name;
+    el.innerHTML = `<span>${label}</span><small></small>`;
+    el.style.gridColumn = `${c} / span ${cs}`; el.style.gridRow = `${r} / span ${rs}`;
+    grid.appendChild(el);
+  }
+  grid.insertAdjacentHTML("beforeend", '<div class="knob" data-key="Encoder" title="knob (press)"></div><div class="slider" data-key="Slider" title="slider"></div>');
+  for (const [bar, ids] of [["barL", layout.side_left], ["barR", layout.side_right]])
+    for (const i of ids) $(bar).insertAdjacentHTML("beforeend", `<div class="led" data-led="${i}"></div>`);
+  $("pad").addEventListener("click", (e) => {
+    if (tab === "keys") {
+      const t = e.target.closest("[data-key]"); if (!t) return;
+      if (!layout.remappable.includes(t.dataset.key) && t.dataset.key !== "Slider") { selKey = null; renderBinding(); paint(); return; }
+      selKey = t.dataset.key; renderBinding(); paint(); return;
+    }
+    const t = e.target.closest("[data-led]"); if (!t) return;
+    const i = Number(t.dataset.led);
+    if (!(e.shiftKey || e.ctrlKey)) selected = new Set(selected.has(i) && selected.size === 1 ? [] : [i]);
+    else selected.has(i) ? selected.delete(i) : selected.add(i);
+    if (selected.size) $("selColor").value = hex(colorOf([...selected][0]) || state.profile.lighting.color);
+    paint();
+  });
+}
+
+function paint() {
+  const keysMode = tab === "keys";
+  $("pad").classList.toggle("keysmode", keysMode);
+  for (const el of document.querySelectorAll("[data-led]")) {
+    const i = Number(el.dataset.led), c = colorOf(i), dark = !c || c[0] + c[1] + c[2] < 120;
+    el.style.background = c ? `rgb(${c})` : "linear-gradient(135deg,#e5484d,#f5a524,#46a758,#0091ff,#8e4ec6)";
+    el.style.opacity = c ? "1" : ".55"; el.style.color = dark ? "#fff8" : "#0008";
+    el.classList.toggle("sel", keysMode ? el.dataset.key === selKey : selected.has(i));
+    el.classList.toggle("breathing", breathing.has(i));
+  }
+  for (const el of document.querySelectorAll(".key[data-key]")) {
+    const k = el.dataset.key;
+    el.querySelector("small").textContent = k === "NumLock" ? "Fn" : bindingLabel(state.layer.keymap[k]);
+  }
+  const knob = document.querySelector(".knob");
+  knob.textContent = bindingLabel(state.layer.keymap.Encoder);
+  knob.classList.toggle("sel", keysMode && selKey === "Encoder");
+  document.querySelector(".slider").classList.toggle("sel", keysMode && selKey === "Slider");
+  const fx = Number($("effect").value);
+  // Multicolour only matters for animated effects with a colour: not Off, Glorious mode, Static, Rainbow.
+  const mcApplies = ![0, 1, 7, 13].includes(fx), mcOn = mcApplies && $("multicolor").checked;
+  $("multicolorRow").classList.toggle("hidden", !mcApplies);
+  $("baseColorRow").style.opacity = mcOn ? ".4" : "1"; $("baseColor").disabled = mcOn;
+  $("baseColorRow").title = mcOn ? "Multicolour is on: the effect uses rainbow colours instead" : "";
+  $("effectHint").textContent = fx === 7 ? "Static: every key shows its colour (base colour unless set per key)."
+    : "Animated: keys you colour (and the OBS status lights) override the effect; the rest animate (shown as a gradient).";
+}
+
+// ---------- saving ----------
+let timers = {}, lastEdit = 0;
+function debounced(key, fn, ms = 150) { lastEdit = Date.now(); clearTimeout(timers[key]); timers[key] = setTimeout(fn, ms); }
+async function post(path, body) { const s = await api(path, body); if (!s.error) { state = s; render(false); } return s; }
+const saveLighting = (patch) => post("/api/lighting", patch);
+const saveObs = (patch) => post("/api/obs", patch);
+const saveDiscord = (patch) => post("/api/discord", patch);
+
+let intTab = "obs";
+function setIntTab(t) {
+  intTab = t;
+  for (const b of document.querySelectorAll("#integrationTabs button")) b.classList.toggle("on", b.dataset.int === t);
+  for (const el of document.querySelectorAll("[data-intpane]")) el.classList.toggle("hidden", el.dataset.intpane !== t);
+}
+
+function setStatus(id, dotId, [cls, text]) {
+  $(id).className = "status" + (cls ? " " + cls : ""); $(id).textContent = text;
+  $(dotId).className = "dot" + (cls === "ok" ? " ok" : cls === "bad" ? " bad" : "");
+}
+
+function renderIntegrations(full) {
+  const o = state.obs, dc = state.discord;
+  const live = o.state && (o.state[0] || o.state[2]);
+  setStatus("obsStatus", "obsDot", !o.enabled ? ["", "Off"]
+    : !o.connected ? ["bad", "Not connected: is OBS running with the WebSocket server on? See the setup guide."]
+    : ["ok", live ? `Connected · ${$("obsChip").textContent.replace("OBS: ", "")}` : "Connected · idle"]);
+  const v = dc.voice;
+  setStatus("discordStatus", "discordDot", {
+    off: ["", "Off"],
+    setup: ["", "Needs your app's client ID and secret. See the setup guide."],
+    not_running: ["bad", "Discord isn't running on this PC (the desktop app is needed)."],
+    authorizing: ["wait", "Waiting for you to click Authorize in Discord…"],
+    connected: ["ok", v ? `Connected · ${v.deaf ? "deafened" : v.mute ? "mic muted" : "mic live"}` : "Connected"],
+    error: ["bad", /invalid_scope/.test(dc.error)
+      ? "Discord refused the voice permissions (invalid_scope). Add your account under App Testers in the Developer Portal (see step 6 of the guide), then click Save & connect."
+      : `Error: ${dc.error}`],
+  }[dc.status] || ["", dc.status]);
+  if (full) {
+    $("discordEnabled").checked = dc.enabled;
+    if (document.activeElement !== $("discordClientId")) $("discordClientId").value = dc.client_id;
+    $("discordSecret").placeholder = dc.has_secret ? "saved (leave empty to keep)" : "paste the client secret";
+  }
+  $("discordForget").disabled = !dc.authorized;
+  const vm = state.voicemeeter;
+  setStatus("vmStatus", "vmDot", {
+    off: ["", "Off"],
+    not_installed: ["bad", "VoiceMeeter isn't installed on this PC. See the setup guide."],
+    not_running: ["bad", "VoiceMeeter isn't running. Start it and this connects by itself."],
+    connected: ["ok", `Connected · VoiceMeeter ${vm.edition || ""}`],
+    error: ["bad", `Error: ${vm.error}`],
+  }[vm.status] || ["", vm.status]);
+  if (full) $("vmEnabled").checked = vm.enabled;
+}
+
+// ---------- hold modes (keymap.ACTIONS "hold"): the state while the key is held ----------
+function holdModes(a) {
+  const mute = { toggle: "Toggle on each press", off: "Hold to talk (live while held)", on: "Hold to mute (muted while held)" };
+  return {
+    obs_mute: mute, discord_mute: mute, vm_mute: mute, mic_mute: mute,
+    discord_deafen: { toggle: "Toggle on each press", on: "Deafened while held", off: "Undeafened while held" },
+    vm_route: { toggle: "Toggle on each press", on: "Route on while held", off: "Route off while held" },
+    vm_macro_toggle: { toggle: "Toggle on each press", on: "Button on while held", off: "Button off while held" },
+    vm_macro_press: { toggle: "Click on each press", on: "Held down while the key is held" },
+  }[a] || { toggle: "Toggle on each press" };
+}
+const holdOf = (b) => b.hold === true ? "off" : b.hold || "toggle";  // true = first hold version (push-to-talk)
+
+// ---------- VoiceMeeter targets (mirrors voicemeeter_link.py) ----------
+function vmTargets(action) {
+  const L = state.voicemeeter.lists, outs = L.buses.map((b) => ({ id: b.id, name: `Output ${b.name}` }));
+  if (action === "vm_mute" || action === "gain") return [...L.strips.map((s) => ({ id: s.id, name: `Input ${s.name}` })), ...outs];
+  if (action === "vm_route") return L.strips.flatMap((s) => L.outputs.map((o) => ({ id: `${s.id}.${o}`, name: `${s.name} → ${o}` })));
+  return Array.from({ length: L.buttons }, (_, i) => ({ id: String(i), name: `Button ${i}` }));
+}
+function vmSelect(id, items, current, none) {
+  const known = items.some((o) => o.id === current), all = current && !known ? [{ id: current, name: current }, ...items] : items;
+  return `<select id="${id}"><option value="">${none}</option>${all.map((o) => `<option value="${esc(o.id)}"${o.id === current ? " selected" : ""}>${esc(o.name)}</option>`).join("")}</select>`;
+}
+function vmShort(b) {  // key cap label
+  const t = b.vm || "", L = state.voicemeeter.lists;
+  const nameOf = (id) => ((L.strips.find((s) => s.id === id) || L.buses.find((s) => s.id === id) || {}).name || id).split(" (")[0];
+  if (!t) return "VM ?";
+  if (b.action === "vm_mute") return "🔇 " + nameOf(t);
+  if (b.action === "vm_route") { const [s, o] = [t.slice(0, t.lastIndexOf(".")), t.slice(t.lastIndexOf(".") + 1)]; return `${nameOf(s)}→${o}`; }
+  return "MB " + t;
+}
+
+function setSelection(color) {
+  const pk = { ...state.profile.lighting.per_key };
+  for (const i of selected) color ? (pk[String(i)] = color) : delete pk[String(i)];
+  state.profile.lighting.per_key = pk; paint();
+  debounced("pk", () => saveLighting({ per_key: pk }));
+}
+
+// ---------- key binding editor ----------
+function options(list, current, label = (x) => x) {
+  const all = current && !list.includes(current) ? [current, ...list] : list;
+  return all.map((v) => `<option value="${esc(v)}"${v === current ? " selected" : ""}>${esc(label(v))}</option>`).join("");
+}
+
+const GROUP_LABEL = { none: "Not used", windows: "Windows volume", app: "One program's volume", obs: "OBS", voicemeeter: "VoiceMeeter" };
+const CTL_HINT = {
+  knob: { windows: "The numpad's own volume keys: works without the suite running.",
+          obs_volume: "Each click turns the source up or down by the step.",
+          obs_scene: "Each click switches to the next (clockwise) or previous scene, in OBS's scene list order. In Studio Mode it steps the Preview scene instead; a TAKE key (OBS: transition) sends it live.",
+          vm_gain: "Each click turns the VoiceMeeter input or output up or down by the step (−60 to +12 dB).",
+          app_volume: "Each click turns that program's own volume (its slider in the Windows Volume mixer) up or down by the step." },
+  slider: { none: "The slider does nothing.", windows: "Sets the Windows master volume (default playback device). Top = 100%.",
+            obs_volume: "Fades the source: top = full volume.",
+            app_volume: "Sets that program's own volume (its slider in the Windows Volume mixer): top = 100 %. All its windows / tabs follow.",
+            vm_gain: "Moves the VoiceMeeter fader of that input or output: bottom = −60 dB, top = +12 dB (0 dB at about 83%).",
+            obs_tbar: "Works like a video-mixer fader: push it all the way to finish the transition from Preview to Program; the next one goes back the other way. Turn on Studio Mode in OBS." },
+};
+const ctlKind = () => selKey === "Encoder" ? "knob" : selKey === "Slider" ? "slider" : null;
+
+function renderControls() {
+  const kind = ctlKind();
+  $("ctlForm").classList.toggle("hidden", !kind);
+  if (!kind) return;
+  const types = layout[kind + "_types"], cur = state.layer.controls[kind], spec = types[cur.type];
+  const groups = [...new Set(Object.values(types).map((t) => t.group))];
+  $("ctlLabel").textContent = kind === "knob" ? "Turning" : "Moving";
+  $("ctlGroup").innerHTML = groups.map((g) => `<option value="${g}"${g === spec.group ? " selected" : ""}>${GROUP_LABEL[g]}</option>`).join("");
+  const obsTypes = Object.keys(types).filter((t) => types[t].group === "obs");
+  $("ctlType").innerHTML = obsTypes.map((t) => `<option value="${t}"${t === cur.type ? " selected" : ""}>${types[t].label}</option>`).join("");
+  $("ctlTypeRow").classList.toggle("hidden", spec.group !== "obs");
+  $("ctlSourceRow").classList.toggle("hidden", !spec.params.includes("source"));
+  $("ctlStepRow").classList.toggle("hidden", !spec.params.includes("step_db"));
+  const vmCtl = spec.group === "voicemeeter";
+  $("ctlSourceRow").firstChild.textContent = vmCtl ? "Input / output " : spec.group === "app" ? "Program " : "Audio source ";
+  $("ctlStepRow").firstChild.textContent = spec.group === "app" ? "Step per click (%) " : "Step per click (dB) ";
+  if (vmCtl) $("ctlSource").outerHTML = vmSelect("ctlSource", vmTargets("gain"), cur.source, "— pick an input or output —");
+  else if (spec.group === "app") $("ctlSource").innerHTML = `<option value="">— pick a program —</option>` + options(state.pc.apps || [], cur.source);
+  else fillSources(obsLists.sources, $("ctlSource"), cur.source, "— pick a source —");
+  $("ctlSource").onchange = saveControl;
+  $("ctlStep").value = cur.step_db ?? 2;
+  let hint = CTL_HINT[kind][cur.type];
+  if (spec.group === "obs" && !state.obs.enabled) hint += " OBS integration is off (Integrations tab), so this does nothing right now.";
+  if (spec.group === "app") hint += " The list shows programs playing sound right now; start the program (and some sound) if it's missing.";
+  if (vmCtl && !state.voicemeeter.enabled) hint += " VoiceMeeter integration is off (Integrations tab), so this does nothing right now.";
+  if (spec.group === "obs" && spec.params.includes("source") && !obsLists.sources.length) hint += " OBS isn't reachable, so the list only shows the current choice.";
+  $("ctlHint").textContent = hint;
+}
+
+async function saveControl() {
+  const kind = ctlKind(), types = layout[kind + "_types"], group = $("ctlGroup").value;
+  let type = group === "obs" ? $("ctlType").value : Object.keys(types).find((t) => types[t].group === group);
+  if (types[type].group !== group) type = Object.keys(types).find((t) => types[t].group === group);
+  const value = { type, source: $("ctlSource").value, step_db: Number($("ctlStep").value) || 2 };
+  await post("/api/controls", { [kind]: value });
+  renderControls();
+}
+
+// Factory state of a key / the knob / the slider (config.FACTORY_LAYER): no binding, knob = Windows
+// volume, slider = unused.
+const CTL_DEFAULT = { knob: { type: "windows", source: "", step_db: 2 }, slider: { type: "none", source: "" } };
+function isDefault(key) {
+  const kind = key === "Encoder" ? "knob" : key === "Slider" ? "slider" : null;
+  const bound = key !== "Slider" && !!state.layer.keymap[key];
+  return !bound && (!kind || state.layer.controls[kind].type === CTL_DEFAULT[kind].type);
+}
+async function resetSelected() {
+  const key = selKey, kind = key === "Encoder" ? "knob" : key === "Slider" ? "slider" : null;
+  if (key !== "Slider" && state.layer.keymap[key]) await post("/api/keymap", { key, binding: { type: "default" } });
+  if (kind) await post("/api/controls", { [kind]: CTL_DEFAULT[kind] });
+  if (selKey === key) renderBinding();
+}
+
+function renderBinding() {
+  const has = !!selKey;
+  $("bindResetRow").classList.toggle("hidden", !has);
+  if (has) {
+    $("bindReset").textContent = selKey === "Encoder" ? "Reset knob to default" : selKey === "Slider" ? "Reset slider to default" : "Reset key to default";
+    $("bindReset").disabled = isDefault(selKey);
+    $("bindReset").title = selKey === "Encoder" ? "Press: factory function; turning: Windows volume" : selKey === "Slider" ? "Slider does nothing" : "The key's factory function";
+  }
+  $("bindEmpty").classList.toggle("hidden", has);
+  $("bindForm").classList.toggle("hidden", !has || selKey === "Slider");
+  renderControls();
+  if (!has) { $("bindTitle").textContent = "Key"; return; }
+  if (selKey === "Slider") { $("bindTitle").textContent = "Slider"; return; }
+  const b = state.layer.keymap[selKey] || { type: "default" };
+  $("bindTitle").textContent = `Key: ${KEY_LABEL[selKey]}`;
+  $("bType").value = b.type;
+  renderFields(b);
+  if (selKey === "Encoder") $("bindTitle").textContent = "Knob";
+  $("bType").previousSibling.textContent = selKey === "Encoder" ? "Pressing " : "Does ";
+}
+
+function renderFields(b) {
+  const f = $("bFields"); let hint = "";
+  if (b.type === "key") {
+    const codes = Object.keys(HID_NAME).map(Number).sort((a, c) => a - c);
+    f.innerHTML = `<label class="row">Key <select id="fCode">${codes.map((u) => `<option value="${u}"${u === b.code ? " selected" : ""}>${esc(keyName(u))}</option>`).join("")}</select></label>
+      <div class="mods">${MOD_ORDER.map((m) => `<label><input type="checkbox" data-mod="${m}"${(b.mods || []).includes(m) ? " checked" : ""}> ${MOD_LABEL[m]}</label>`).join("")}</div>
+      <div class="btns"><button id="fCapture">Press a key combination…</button></div>`;
+    $("fCapture").onclick = (e) => capture(e.target);
+    hint = "F13–F24 are in the list; they don't exist on normal keyboards, so they make good hotkeys for other apps.";
+  } else if (b.type === "media") {
+    f.innerHTML = `<label class="row">Function <select id="fAction">${options(layout.media, b.action, pretty)}</select></label>`;
+    hint = "The numpad's own media key: Windows sends it to the media session it picks. For a play/pause light use App action → Media instead. VLC 3 only reacts while focused unless its own Global hotkeys are set (VLC → Tools → Preferences → Hotkeys).";
+  } else if (b.type === "function") {
+    f.innerHTML = `<label class="row">Switch <select id="fAction">${options(layout.functions, b.action, (a) => FUNCTION_LABEL[a] || a)}</select></label>`;
+  } else if (b.type === "macro") {
+    const ids = Object.keys(state.macros);
+    if (!ids.length) { f.innerHTML = ""; hint = "No macros yet: create one in the Macros tab first."; }
+    else f.innerHTML = `<label class="row">Macro <select id="fMacro">${options(ids, b.macro, (id) => state.macros[id].name)}</select></label>
+      <label class="row">Playback <select id="fMode">${options(Object.keys(MODE_LABEL), b.mode || "once", (m) => MODE_LABEL[m])}</select></label>`;
+  } else if (b.type === "action") {
+    const a = b.action || "obs_record", param = layout.actions[a].param, group = layout.actions[a].group;
+    const inGroup = (layout.action_order || Object.keys(layout.actions)).filter((x) => layout.actions[x].group === group);
+    let extra = "";
+    if (param === "scene") extra = `<label class="row">Scene <select id="fParam">${options(obsLists.scenes, b.scene || "")}</select></label>`;
+    else if (param === "source") extra = `<label class="row">Source <select id="fParam">${options(obsLists.sources, b.source || "")}</select></label>`;
+    else if (param === "vm") extra = `<label class="row">${a === "vm_mute" ? "Input / output" : a === "vm_route" ? "Route" : "Button"} ${vmSelect("fParam", vmTargets(a), b.vm || "", "— pick —")}</label>`;
+    else if (param === "target") extra = `<label class="row">Open <input type="text" id="fParam" placeholder="C:\\path\\app.exe, a folder or https://…" value="${esc(b.target || "")}"></label>`;
+    f.innerHTML = `<label class="row">App <select id="fGroup">${options(layout.action_group_order || Object.keys(layout.action_groups), group, (g) => layout.action_groups[g])}</select></label>
+      <label class="row">Action <select id="fAction">${options(inGroup, a, (x) => layout.actions[x].label)}</select></label>${extra}
+      ${layout.actions[a].hold ? `<label class="row">Mode <select id="fHold">${options(Object.keys(holdModes(a)), holdOf(b), (m) => holdModes(a)[m])}</select></label>` : ""}`;
+    hint = a === "obs_scene" ? "In Studio Mode the key puts the scene into Preview (like clicking it in OBS); otherwise it goes live. The key lights red while the scene is live and orange while it's in Preview."
+      : a === "obs_transition" ? "Sends the Preview scene live with OBS's transition (Studio Mode)."
+      : a === "obs_replay" || a === "obs_replay_toggle" ? "The key lights cyan while the replay buffer runs (dim when it's stopped); a saved clip flashes the save key white. The replay buffer must be enabled in OBS → Settings → Output."
+      : a === "vm_mute" ? "Mutes / unmutes the input or output in VoiceMeeter. The key lights green while live and red while muted."
+      : a === "vm_route" ? "Switches the input's route to that output (the A / B buttons on the strip). The key lights blue while the route is on."
+      : a.startsWith("vm_macro") ? "Toggle flips a toggle-type Macro Button; press clicks a push-type one. The key lights amber while the button is on. Needs the VoiceMeeter Macro Buttons app running."
+      : a.startsWith("discord") ? "Toggles your mic / deafen in the Discord desktop app. The key lights green while you're live and red while muted. Set up Discord in Integrations → Discord first."
+      : a === "mic_mute" ? "Mutes the Windows default recording device itself (both the default and the communications device), so every app hears silence. The key lights green while live and red while muted."
+      : a === "battery" ? "Shows the battery level on both side bars for 4 seconds: lit from the bottom, red under 20 %, orange under 50 %, yellow under 90 %, green above."
+      : a === "media_play_pause" ? "Plays / pauses whatever Windows' media overlay controls (Spotify, a browser tab, a player). The key lights green while something plays and dim amber when paused."
+      : a.startsWith("media") ? "Skips in whatever Windows' media overlay controls (Spotify, a browser tab, a player)."
+      : a.startsWith("obs") ?"Runs in OBS over WebSocket, even when OBS is in the background. The key lights up with the status."
+      : "Runs a program, opens a file/folder, or opens a URL. Text that isn't a file is run like the Run dialog (Win+R).";
+    if ((param === "scene" || param === "source") && !obsLists[param + "s"].length) hint = "OBS isn't reachable, so the list is empty. Open OBS, then reselect the action.";
+    if (holdOf(b) !== "toggle") hint += " Letting go of the key always sets the opposite state, so it can't get stuck.";
+    if (param === "vm" && state.voicemeeter.status !== "connected") hint += " VoiceMeeter isn't connected (Integrations → VoiceMeeter), so the lists may be empty.";
+  } else if (b.type === "default") {
+    f.innerHTML = ""; hint = "What the key does out of the box.";
+  } else f.innerHTML = "";
+  $("bHint").textContent = hint;
+  for (const el of f.querySelectorAll("select, input")) el.onchange = () => saveBinding();
+  if ($("fGroup")) $("fGroup").onchange = (e) => {  // another app: start on its first action
+    const first = Object.keys(layout.actions).find((x) => layout.actions[x].group === e.target.value);
+    const p = layout.actions[first].param;
+    saveBinding({ type: "action", action: first, ...(p ? { [p]: "" } : {}) });
+  };
+}
+
+function readFields() {
+  const t = $("bType").value, b = { type: t }, v = (id) => $(id) && $(id).value;
+  if (t === "key") { b.code = Number(v("fCode")); b.mods = [...document.querySelectorAll("[data-mod]")].filter((c) => c.checked).map((c) => c.dataset.mod); }
+  if (t === "media" || t === "function" || t === "action") b.action = v("fAction");
+  if (t === "macro") { if (!v("fMacro")) return null; b.macro = v("fMacro"); b.mode = v("fMode"); }
+  if (t === "action") {
+    const p = layout.actions[b.action].param; if (p) b[p] = v("fParam") || "";
+    const hold = $("fHold") && $("fHold").value;
+    if ((hold === "on" || hold === "off") && layout.actions[b.action].hold && hold in holdModes(b.action)) b.hold = hold;
+  }
+  return b;
+}
+
+async function saveBinding(binding = readFields()) {
+  if (binding === undefined || binding === null) return;
+  const key = selKey;
+  await post("/api/keymap", { key, binding });
+  if (selKey === key) renderBinding();
+}
+
+function capture(btn) {
+  btn.textContent = "Press the keys now… (Esc to cancel)"; btn.classList.add("rec");
+  const done = () => { window.removeEventListener("keydown", onKey, true); btn.textContent = "Press a key combination…"; btn.classList.remove("rec"); };
+  const onKey = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.code === "Escape") return done();
+    const usage = HID[e.code]; if (usage == null) return;
+    if (usage >= 0xE0) return;  // wait for the main key; modifiers come from the flags
+    const mods = MOD_ORDER.filter((m) => ({ ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, win: e.metaKey })[m]);
+    done(); saveBinding({ type: "key", code: usage, mods });
+  };
+  window.addEventListener("keydown", onKey, true);
+}
+
+// ---------- macros ----------
+let mEdit = null, recording = null;  // mEdit = {id, name, events}; recording = {last}
+
+function renderMacroList() {
+  const ids = Object.keys(state.macros);
+  $("mlist").innerHTML = ids.length ? ids.map((id) => {
+    const m = state.macros[id], used = usedBy(id);
+    return `<button data-mid="${id}" class="${mEdit && mEdit.id === id ? "on" : ""}"><span>${esc(m.name)}</span><span class="hint" style="margin:0">${m.events.length} events${used ? " · " + used : ""}</span></button>`;
+  }).join("") : '<div class="empty">No macros yet.</div>';
+  for (const b of $("mlist").querySelectorAll("[data-mid]")) b.onclick = () => openMacro(b.dataset.mid);
+}
+
+function usedBy(id) {
+  const keys = Object.entries(state.layer.keymap).filter(([, b]) => b.type === "macro" && b.macro === id).map(([k]) => KEY_LABEL[k]);
+  return keys.length ? "on " + keys.join(", ") : "";
+}
+
+function openMacro(id) {
+  stopRecording();
+  mEdit = id ? { id, name: state.macros[id].name, events: state.macros[id].events.map((e) => [...e]) } : { id: null, name: "", events: [] };
+  $("mStatus").textContent = ""; renderMacroEditor(); renderMacroList();
+}
+
+function renderMacroEditor() {
+  $("mEmpty").classList.toggle("hidden", !!mEdit); $("mForm").classList.toggle("hidden", !mEdit);
+  if (!mEdit) return;
+  $("mName").value = mEdit.name; $("mDelete").disabled = mEdit.id == null;
+  $("mCount").textContent = `${mEdit.events.length} / ${layout.macro_max_events} events`;
+  $("mEvents").innerHTML = mEdit.events.length ? mEdit.events.map(([code, down, delay], n) =>
+    `<div class="ev"><span class="${down ? "down" : "up"}">${down ? "↓" : "↑"}</span><span>${esc(keyName(code))}</span>
+     <label style="display:flex;gap:4px;align-items:center"><input type="number" min="1" max="32767" value="${delay}" data-delay="${n}"> ms</label>
+     <button data-del="${n}" title="remove">✕</button></div>`).join("")
+    : '<div class="empty">Press Record and type, or add key presses below.</div>';
+  for (const i of $("mEvents").querySelectorAll("[data-delay]")) i.onchange = () => { mEdit.events[i.dataset.delay][2] = Math.max(1, Number(i.value) || 1); };
+  for (const b of $("mEvents").querySelectorAll("[data-del]")) b.onclick = () => { mEdit.events.splice(Number(b.dataset.del), 1); renderMacroEditor(); };
+  const box = $("mEvents"); box.scrollTop = box.scrollHeight;
+}
+
+function onMacroKey(e) {
+  if (!recording || e.repeat) return;
+  e.preventDefault(); e.stopPropagation();
+  const usage = HID[e.code]; if (usage == null) return;
+  if (mEdit.events.length >= layout.macro_max_events) return stopRecording();
+  const now = performance.now(), ev = mEdit.events;
+  if (ev.length && recording.last != null) ev[ev.length - 1][2] = $("mDelays").checked ? Math.min(32767, Math.max(1, Math.round(now - recording.last))) : 20;
+  ev.push([usage, e.type === "keydown", 20]); recording.last = now;
+  renderMacroEditor();
+}
+
+function startRecording() {
+  recording = { last: null };
+  $("mRecord").textContent = "■ Stop recording"; $("mRecord").classList.add("rec");
+  window.addEventListener("keydown", onMacroKey, true); window.addEventListener("keyup", onMacroKey, true);
+}
+function stopRecording() {
+  if (!recording) return;
+  recording = null; $("mRecord").textContent = "● Record"; $("mRecord").classList.remove("rec");
+  window.removeEventListener("keydown", onMacroKey, true); window.removeEventListener("keyup", onMacroKey, true);
+}
+
+async function saveMacro() {
+  stopRecording();
+  if (!mEdit.events.length) return alert("The macro has no events yet.");
+  const s = await api("/api/macro", { id: mEdit.id, name: $("mName").value, events: mEdit.events });
+  if (s.error) return;
+  state = s; mEdit.id = s.saved_macro; mEdit.name = state.macros[mEdit.id].name;
+  $("mStatus").textContent = "Saved. Assign it to a key in the Keys tab.";
+  renderMacroEditor(); renderMacroList(); render(false);
+}
+
+async function deleteMacro() {
+  if (mEdit.id == null || !confirm(`Delete macro "${state.macros[mEdit.id].name}"? Keys using it go back to their default.`)) return;
+  await post("/api/macro/delete", { id: mEdit.id });
+  mEdit = null; renderMacroEditor(); renderMacroList();
+}
+
+// ---------- OBS lists ----------
+function fillSources(list, selectEl, current, noneLabel) {
+  selectEl.innerHTML = `<option value="">${noneLabel}</option>` +
+    [...new Set([...(current ? [current] : []), ...list])].map((n) => `<option>${esc(n)}</option>`).join("");
+  selectEl.value = current || "";
+}
+async function loadLists() {
+  obsLists = await api("/api/obs/lists");
+  if (tab === "keys" && selKey) renderBinding();
+}
+
+// ---------- top-level render ----------
+function setTab(t) {
+  tab = t; stopRecording();
+  for (const b of document.querySelectorAll("#tabs button")) b.classList.toggle("on", b.dataset.tab === t);
+  $("padView").classList.toggle("hidden", t !== "lighting" && t !== "keys");
+  $("macroView").classList.toggle("hidden", t !== "macros");
+  for (const v of ["integrations", "settings"]) $(v + "View").classList.toggle("hidden", t !== v);
+  $("effectCard").classList.toggle("hidden", t !== "lighting"); $("lightTools").classList.toggle("hidden", t !== "lighting");
+  $("bindCard").classList.toggle("hidden", t !== "keys"); $("keysHint").classList.toggle("hidden", t !== "keys");
+  $("layerTools").classList.toggle("hidden", t !== "keys");
+  $("padTitle").textContent = t === "keys" ? "Key mapping" : "Lighting";
+  if (t === "keys") { renderBinding(); if (!obsLists.scenes.length) loadLists(); }
+  if (t === "macros") { renderMacroList(); renderMacroEditor(); }
+  paint();
+}
+
+function render(full = true) {
+  const d = state.device, o = state.obs, L = state.profile.lighting;
+  $("devChip").textContent = d.connected ? `numpad: ${d.transport}${d.syncing ? ` · syncing ${d.syncing}` : d.last_paint_s != null ? ` · ${d.last_paint_s}s` : ""}` : "numpad: not found";
+  $("devChip").className = "chip" + (d.connected ? " ok" : "");
+  const fwLabel = d.firmware ? `fw ${d.firmware}${d.fw_addon ? ` + add-on v${d.fw_addon.version}` : d.transport === "USB" ? " (stock)" : ""}` : null;
+  const info = [fwLabel, d.battery != null ? `battery ${d.battery}%` : null].filter(Boolean);
+  // Recommend the add-on on stock firmware and on an older add-on (see server.FIRMWARE_ADDON).
+  const addon = layout.firmware_addon, dismissed = Number(localStorage.getItem("fwBannerDismissed") || 0);
+  const stock = d.connected && d.transport === "USB" && !d.fw_addon;
+  const outdated = d.connected && d.fw_addon && d.fw_addon.version < addon.version;
+  $("fwBanner").classList.toggle("hidden", !(addon.available && (stock || outdated) && dismissed < addon.version));
+  $("fwBannerTitle").textContent = outdated ? `Firmware add-on v${addon.version} available (you have v${d.fw_addon.version}).` : "Firmware add-on available.";
+  $("fwBannerWhy").textContent = outdated ? "Update in the Settings tab: it keeps Bluetooth and your settings."
+    : "Your numpad runs the stock Glorious firmware: everything works, the features above need the add-on. Updating keeps Bluetooth and your settings, and can always be undone.";
+  $("fwBannerText").textContent = addon.benefits.join(" · ") + ".";
+  renderFirmware();
+  $("infoChip").textContent = info.join(" · "); $("infoChip").classList.toggle("hidden", !d.connected || !info.length);
+  const live = o.state && (o.state[0] || o.state[2]);
+  $("obsChip").textContent = !o.enabled ? "OBS: off" : !o.connected ? "OBS: not connected"
+    : live ? `OBS: ${[o.state[0] ? (o.state[1] ? "paused" : "recording") : null, o.state[2] ? "streaming" : null].filter(Boolean).join(" + ")}` : "OBS: idle";
+  $("obsChip").className = "chip" + (live ? " live" : o.connected ? " ok" : "");
+  renderIntegrations(full);
+  $("profiles").innerHTML = Object.entries(state.profiles).map(([p, name]) =>
+    `<button data-p="${p}" class="${Number(p) === state.active_profile ? "on" : ""}" title="${esc(name)}">${esc(name)}</button>`).join("");
+  for (const b of $("profiles").querySelectorAll("button")) b.onclick = () => switchProfile(Number(b.dataset.p));
+  $("layers").innerHTML = [1, 2, 3].map((l) => `<button data-l="${l}" class="${l === state.active_layer ? "on" : ""}">Layer ${l}</button>`).join("");
+  for (const b of $("layers").querySelectorAll("button")) b.onclick = () => switchLayer(Number(b.dataset.l));
+  $("layerToolsLabel").textContent = `Editing layer ${state.active_layer}.`;
+  $("copyLayerBtns").innerHTML = [1, 2, 3].filter((l) => l !== state.active_layer)
+    .map((l) => `<button data-copy="${l}">Copy layer ${l} here</button>`).join("");
+  for (const b of $("copyLayerBtns").querySelectorAll("button")) b.onclick = () => copyLayer(Number(b.dataset.copy));
+  const ind = L.layer_indicator || { enabled: false, color: [0, 170, 255] };
+  $("layerIndColorRow").classList.toggle("hidden", !ind.enabled);
+  if (full) {
+    $("effect").value = L.effect; $("baseColor").value = hex(L.color);
+    $("speed").value = L.speed; $("brightness").value = L.brightness; $("sidelights").checked = L.sidelights;
+    $("multicolor").checked = !!L.multicolor;
+    $("layerInd").checked = !!(L.layer_indicator || {}).enabled; $("layerIndColor").value = hex((L.layer_indicator || {}).color || [0, 170, 255]);
+    $("obsEnabled").checked = o.enabled; $("obsOverlay").checked = o.overlay; 
+    $("autostart").checked = state.autostart;
+    const ds = state.device_settings;
+    $("pollingHz").value = ds.polling_hz; $("scanMs").value = ds.scan_ms; $("scanMsLabel").textContent = `${ds.scan_ms} ms`;
+    $("ledSleep").value = [...$("ledSleep").options].some((o) => Number(o.value) === ds.led_sleep_min) ? ds.led_sleep_min : 0;
+    const bw = state.battery_warning;
+    $("battWarn").checked = bw.enabled; $("battLevel").value = bw.level; $("battLevelRow").classList.toggle("hidden", !bw.enabled);
+    if (document.activeElement !== $("profName")) $("profName").value = state.profiles[state.active_profile];
+  }
+  $("log").textContent = state.log.join("\n");
+  overlayFor(o.connected ? o.state : null);
+  const vmv = state.voicemeeter.view;  // mirrors voicemeeter_link.vm_overlay
+  if (vmv) for (const [key, b] of Object.entries(state.layer.keymap)) {
+    const led = layout.keys[key];
+    if (led == null || b.type !== "action" || !b.action.startsWith("vm_") || !b.vm) continue;
+    const v = b.action === "vm_mute" ? vmv.params[b.vm + ".Mute"] : b.action === "vm_route" ? vmv.params[b.vm] : vmv.buttons[b.vm];
+    if (v == null) continue;
+    overlay[led] = b.action === "vm_mute" ? (v >= 0.5 ? [220, 0, 0] : [0, 200, 60])
+      : b.action === "vm_route" ? (v >= 0.5 ? [0, 120, 255] : [0, 12, 25]) : (v >= 0.5 ? [255, 180, 0] : [25, 18, 0]);
+  }
+  const pcv = state.pc;  // mirrors pc_link.pc_overlay
+  if (pcv) for (const [key, b] of Object.entries(state.layer.keymap)) {
+    const led = layout.keys[key];
+    if (led == null || b.type !== "action") continue;
+    if (b.action === "mic_mute" && pcv.mic_muted != null) overlay[led] = pcv.mic_muted ? [220, 0, 0] : [0, 200, 60];
+    else if (b.action === "media_play_pause") overlay[led] = pcv.playing ? [0, 200, 60] : [40, 25, 0];
+  }
+  const voice = state.discord.voice;  // mirrors discord_link.discord_overlay
+  if (voice) for (const [key, b] of Object.entries(state.layer.keymap)) {
+    const led = layout.keys[key], flag = b.action === "discord_mute" ? voice.mute : b.action === "discord_deafen" ? voice.deaf : null;
+    if (led != null && b.type === "action" && flag != null) overlay[led] = flag ? [220, 0, 0] : [0, 200, 60];
+  }
+  const obsBars = [...layout.side_left, ...layout.side_right].some((i) => overlay[i]);  // recording / streaming
+  if ((L.layer_indicator || {}).enabled && !obsBars)  // mirrors DeviceManager.compose: bottom N LEDs of both bars = layer N (OBS has the bars while live)
+    for (const bar of [layout.side_left, layout.side_right])
+      for (const i of bar.slice(-state.active_layer)) { overlay[i] = L.layer_indicator.color; breathing.delete(i); }
+  paint();
+}
+
+function renderFirmware() {
+  const d = state.device, job = state.firmware_job, addon = layout.firmware_addon;
+  $("fwStatus").textContent = d.firmware ? `${d.firmware} ${d.fw_addon ? `+ add-on v${d.fw_addon.version}` : d.transport === "USB" ? "(stock)" : ""}` : "—";
+  const running = job.state === "running";
+  $("fwProgress").classList.toggle("hidden", job.state === "idle");
+  $("fwBar").style.width = job.total ? `${Math.round(100 * job.done / job.total)}%` : running ? "5%" : "100%";
+  $("fwStep").textContent = running ? ({ preparing: "Preparing…", bootloader: "Restarting the numpad into update mode…",
+      writing: `Writing page ${job.done + 1} of ${job.total}… don't unplug the numpad`, restarting: "Restarting the numpad…" }[job.step] || job.step)
+    : job.state === "done" ? `Done: ${job.action === "install" ? "add-on installed" : "stock firmware restored"}.`
+    : job.state === "error" ? `Failed: ${job.error}` : "";
+  $("fwButtons").classList.toggle("hidden", !addon.available);
+  $("fwInstall").disabled = $("fwRestore").disabled = running || d.transport !== "USB";
+  $("fwInstall").textContent = !d.fw_addon ? "Install add-on" : d.fw_addon.version < addon.version ? `Update add-on to v${addon.version}` : "Reinstall add-on";
+  $("fwHint").textContent = !addon.images
+    ? "This copy of the suite was built without the firmware images, so it can't update the numpad's firmware. Everything else works on the stock firmware."
+    : !addon.available
+    ? "Firmware updates from here unlock once the add-on has been tested on real hardware."
+    : d.transport !== "USB" ? "Connect the USB cable to update the firmware."
+    : "Updating keeps Bluetooth and your settings. If anything goes wrong the numpad stays in update mode and you can simply try again or restore stock.";
+}
+
+async function switchLayer(l) {
+  if (l === state.active_layer) return;
+  await post("/api/profile", { layer: l });
+  render(true); if (tab === "keys") renderBinding(); if (tab === "macros") renderMacroList();
+}
+
+async function copyLayer(from) {
+  if (!confirm(`Replace layer ${state.active_layer}'s keys, knob and slider with a copy of layer ${from}?`)) return;
+  await post("/api/profile", { copy_layer_from: from });
+  if (tab === "keys") renderBinding();
+}
+
+async function switchProfile(p) {
+  if (p === state.active_profile) return;
+  selected = new Set(); await post("/api/profile", { active: p });
+  render(true); if (tab === "keys") renderBinding(); if (tab === "macros") renderMacroList();
+}
+
+async function init() {
+  layout = await api("/api/layout");
+  $("effect").innerHTML = Object.entries(layout.effects).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+  $("mAddKey").innerHTML = Object.keys(HID_NAME).map(Number).sort((a, c) => a - c).map((u) => `<option value="${u}">${esc(keyName(u))}</option>`).join("");
+  state = await api("/api/state");
+  buildPad(); render(true); loadLists();
+
+  for (const b of document.querySelectorAll("#tabs button")) b.onclick = () => setTab(b.dataset.tab);
+  $("selColor").addEventListener("input", (e) => selected.size && setSelection(rgb(e.target.value)));
+  $("resetKeys").onclick = () => selected.size && setSelection(null);
+  for (const b of document.querySelectorAll("[data-select]")) b.onclick = () => {
+    const keys = Object.values(layout.keys), sides = [...layout.side_left, ...layout.side_right];
+    selected = new Set({ keys, sides, all: [...keys, ...sides], none: [] }[b.dataset.select]); paint();
+  };
+  $("effect").onchange = (e) => saveLighting({ effect: Number(e.target.value) });
+  $("baseColor").oninput = (e) => { state.profile.lighting.color = rgb(e.target.value); paint(); debounced("base", () => saveLighting({ color: rgb(e.target.value) })); };
+  $("speed").oninput = (e) => debounced("speed", () => saveLighting({ speed: Number(e.target.value) }), 300);
+  $("brightness").oninput = (e) => debounced("bright", () => saveLighting({ brightness: Number(e.target.value) }), 300);
+  $("sidelights").onchange = (e) => saveLighting({ sidelights: e.target.checked });
+  $("multicolor").onchange = (e) => { paint(); saveLighting({ multicolor: e.target.checked }); };
+  const saveIndicator = () => saveLighting({ layer_indicator: { enabled: $("layerInd").checked, color: rgb($("layerIndColor").value) } });
+  $("layerInd").onchange = saveIndicator; $("layerIndColor").onchange = saveIndicator;
+  $("resync").onclick = () => post("/api/resync", {});
+  $("fwInstall").onclick = () => confirm("Install the suite firmware add-on? Keep the USB cable connected until it finishes (about 10 seconds).") && post("/api/firmware", { action: "install" });
+  $("fwRestore").onclick = () => confirm("Restore the original Glorious firmware (0088)? Keep the USB cable connected until it finishes.") && post("/api/firmware", { action: "restore" });
+  $("importBackup").onclick = () => $("importFile").click();
+  $("importFile").onchange = async (e) => {
+    const file = e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    let backup;
+    try { backup = JSON.parse(await file.text()); } catch { return alert("That file isn't valid JSON."); }
+    if (!confirm(`Replace all profiles, layers, macros and settings with "${file.name}"?`)) return;
+    const s = await post("/api/restore", backup);
+    if (!s.error) { selected = new Set(); selKey = null; render(true); alert("Backup restored. The numpad is being updated."); }
+  };
+  $("resetLayer").onclick = async () => {
+    if (!confirm(`Reset layer ${state.active_layer} of ${state.profiles[state.active_profile]}? Its keys go back to factory, the knob to Windows volume and the slider to unused.`)) return;
+    await post("/api/reset", { what: "layer" }); selKey = null; renderBinding();
+  };
+  $("resetLighting").onclick = async () => {
+    if (!confirm(`Reset the lighting of ${state.profiles[state.active_profile]} to static white?`)) return;
+    selected = new Set(); await post("/api/reset", { what: "lighting" }); render(true);
+  };
+  $("resetAll").onclick = async () => {
+    if (!confirm("Reset ALL profiles, layers and macros to the suite's defaults? This can't be undone (export a backup first).")) return;
+    if (!confirm("Really reset everything?")) return;
+    await post("/api/reset", { what: "all" }); render(true);
+  };
+  $("pollingHz").onchange = (e) => post("/api/device", { polling_hz: Number(e.target.value) });
+  $("scanMs").oninput = (e) => { $("scanMsLabel").textContent = `${e.target.value} ms`; debounced("scan", () => post("/api/device", { scan_ms: Number(e.target.value) }), 400); };
+  $("ledSleep").onchange = (e) => post("/api/device", { led_sleep_min: Number(e.target.value) });
+  $("battWarn").onchange = (e) => { $("battLevelRow").classList.toggle("hidden", !e.target.checked); post("/api/battery_warning", { enabled: e.target.checked }); };
+  $("battLevel").onchange = (e) => post("/api/battery_warning", { level: Number(e.target.value) });
+  $("fwBannerClose").onclick = () => { localStorage.setItem("fwBannerDismissed", layout.firmware_addon.version); $("fwBanner").classList.add("hidden"); };
+  $("bType").onchange = () => { renderFields({ type: $("bType").value }); saveBinding(); };
+  $("obsEnabled").onchange = (e) => saveObs({ enabled: e.target.checked });
+  $("obsOverlay").onchange = (e) => saveObs({ overlay: e.target.checked });
+  for (const id of ["ctlGroup", "ctlType", "ctlSource", "ctlStep"]) $(id).onchange = saveControl;
+  $("reloadSources").onclick = loadLists;
+  for (const b of document.querySelectorAll("#integrationTabs button")) b.onclick = () => setIntTab(b.dataset.int);
+  $("discordEnabled").onchange = (e) => saveDiscord({ enabled: e.target.checked });
+  $("discordConnect").onclick = () => {
+    const patch = { enabled: true, client_id: $("discordClientId").value.trim() }, secret = $("discordSecret").value.trim();
+    if (secret) patch.client_secret = secret;
+    $("discordSecret").value = "";
+    saveDiscord(patch);
+  };
+  $("vmEnabled").onchange = (e) => post("/api/voicemeeter", { enabled: e.target.checked });
+  $("discordForget").onclick = () => confirm("Remove the Discord authorization from this PC? The next connect asks in Discord again.") && saveDiscord({ forget: true });
+  $("profName").onchange = (e) => post("/api/profile", { name: e.target.value });
+  $("autostart").onchange = (e) => post("/api/autostart", { enabled: e.target.checked });
+  $("newMacro").onclick = () => openMacro(null);
+  $("mRecord").onclick = () => recording ? stopRecording() : startRecording();
+  $("mName").oninput = (e) => { mEdit.name = e.target.value; };
+  $("mAddTap").onclick = () => {
+    const u = Number($("mAddKey").value);
+    if (mEdit.events.length + 2 > layout.macro_max_events) return;
+    mEdit.events.push([u, true, 20], [u, false, 20]); renderMacroEditor();
+  };
+  $("bindReset").onclick = resetSelected;
+  $("mSave").onclick = saveMacro;
+  $("mDelete").onclick = deleteMacro;
+
+  setInterval(async () => {  // slider preview: the numpad reports every move (0 = bottom, 100 = top)
+    if (document.hidden) return;
+    const live = await api("/api/live"), el = document.querySelector(".slider");
+    if (!el || !live) return;
+    el.classList.toggle("live", live.slider != null);
+    if (live.slider != null) { el.style.setProperty("--pos", live.slider / 100); el.title = `slider: ${live.slider}%`; }
+  }, 200);
+  setInterval(async () => {
+    const fresh = await api("/api/state");
+    const switched = fresh.active_profile !== state.active_profile || fresh.active_layer !== state.active_layer;
+    if (!switched && Date.now() - lastEdit < 1500) fresh.profile.lighting = state.profile.lighting;  // keep edits still being saved
+    state = fresh; render(switched);
+    if (switched) { selected = new Set(); if (tab === "keys") renderBinding(); if (tab === "macros") renderMacroList(); }
+  }, 1000);
+}
+init();
+</script>
+</body>
+</html>
