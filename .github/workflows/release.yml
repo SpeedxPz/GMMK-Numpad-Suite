@@ -29,9 +29,9 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -83,7 +83,7 @@ jobs:
           Copy-Item "dist/GMMK Numpad Suite.exe" $name
           "EXE_NAME=$name" >> $env:GITHUB_ENV
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: GMMK-Numpad-Suite
           path: ${{ env.EXE_NAME }}
