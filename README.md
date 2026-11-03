@@ -104,3 +104,19 @@ git push origin v1.0.0
 | `tools/` | HID protocol library (`gmmk_numpad.py`), firmware flasher, research scripts |
 | `fw/` | the firmware add-on (C) and its build / patch script |
 | `packaging/` | PyInstaller build |
+
+## License
+
+Copyright (C) 2026 SpeedxPz
+
+This program is free software: you can redistribute it and/or modify it under the terms of the
+**GNU General Public License v3.0** as published by the Free Software Foundation. It comes with
+**no warranty**. See [LICENSE](LICENSE).
+
+Not covered by this license:
+- The Glorious stock firmware (`GMMK_Numpad_88.hex`) belongs to Glorious and is not part of this
+  repository. The firmware add-on in `fw/` is our own code; it is applied to that firmware at build time.
+- The fonts in `suite/web/fonts` (Inter, Space Grotesk) are under the SIL Open Font License 1.1.
+
+"Glorious", "GMMK" and "Glorious CORE" are trademarks of Glorious LLC, used here only to name the
+hardware this works with.
