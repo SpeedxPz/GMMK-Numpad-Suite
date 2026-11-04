@@ -100,7 +100,9 @@ def ble_battery():
         services = (await dev.get_gatt_services_for_uuid_async(BATTERY_SERVICE)).services
         for s in services:
             for ch in (await s.get_characteristics_for_uuid_async(BATTERY_LEVEL)).characteristics:
-                res = await ch.read_value_async(BluetoothCacheMode.UNCACHED)
+                # CACHED on purpose: the numpad answers a direct (uncached) read with a stale 100 %, while
+                # its notifications carry the real level and Windows keeps the cache updated from them.
+                res = await ch.read_value_async(BluetoothCacheMode.CACHED)
                 if res.value is not None:
                     return DataReader.from_buffer(res.value).read_byte()
         return None
